@@ -23,7 +23,7 @@ import argparse
 from avs_reporter import AVSReporter
 
 
-parser = argparse.ArgumentParser(description='Description of your program')
+parser = argparse.ArgumentParser(description='Generating simulation data with various configuration')
 parser.add_argument('--duration','-du',metavar='int(seconds)', help='Duration of the simulation',type=int,required=True)
 parser.add_argument('--name','-n',metavar='str', help='Name of the data', type=str, required=True)
 parser.add_argument('--ego-cars','-ec',metavar='int', help='The number of ego vehicles', type=int, default=8)
