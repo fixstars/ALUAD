@@ -29,7 +29,7 @@ parser.add_argument('--name','-n',metavar='str', help='Name of the data', type=s
 parser.add_argument('--ego-cars','-ec',metavar='int', help='The number of ego vehicles', type=int, default=8)
 parser.add_argument('--npc-cars','-nc',metavar='int', help='The number of NPC vehicles to try', type=int, default=1250)
 parser.add_argument('--ego-type','-et',metavar='str', help='The type of the ego vehicle', type=str, default='tesla')
-parser.add_argument('--manual','-m',metavar='binary', help='Need one car to manually drive', type=bool, default=False)
+#parser.add_argument('--manual','-m',metavar='binary', help='Need one car to manually drive', type=bool, default=False)
 parser.add_argument('--fov','-f',metavar='int(degree)', help='Field of View of the dash cam', type=int, default=110)
 parser.add_argument('--resolution-x','-rx',metavar='int(pixel)', help='Horizontal resolution of the dash cam', type=int, default=280)
 parser.add_argument('--resolution-y','-ry',metavar='int(pixel)', help='Vertical resolution of the dash cam', type=int, default=210)
@@ -39,17 +39,17 @@ parser.add_argument('--cam-z','-cz',metavar='float(m)', help='Dash cam location 
 parser.add_argument('--cam-yaw','-cry',metavar='float(degree)', help='Dash cam rotation yaw', type=float, default=0)
 parser.add_argument('--cam-pitch','-crp',metavar='float(degree)', help='Dash cam rotation pitch', type=float, default=10)
 parser.add_argument('--cam-roll','-crr',metavar='float(degree)', help='Dash cam rotation roll', type=float, default=0)
+parser.add_argument('--max-dist','-maxd',metavar='float', help='Max distance to the front car to include', type=float, default=100)
 # TODO: If debug = false; don't even need to do manual_drive.py
-parser.add_argument('--debug','-d',metavar='binary', help='Print out affordance indicators on the console', type=bool, default=False)
+# TODO: execute manual_drive.py inside here and get rid off its cli
+parser.add_argument('--debug','-d',metavar='int(0|1|2)', help='Need a debug ego car which can be driven manually(2) or automatically(1)', type=str, default=0)
 
 args = vars(parser.parse_args())
 
-# TO DO: Make all global vars to be argparser cli flags
 # This intermediate global representation can be removed
 MAX_TIME = args['duration']
 EGO_CARS = args['ego_cars']
 EGO_TYPE = args['ego_type'] 
-MANUAL = args['manual']
 NPC_CARS = args['npc_cars']
 # Camera Field of View
 FOV = args['fov']
@@ -65,6 +65,7 @@ FPS = 10
 INTERVAL = 1/FPS
 NAME = "{}-{}".format(args['name'],MAX_TIME)
 CSV_NAME = "{}_labels.csv".format(NAME)
+MAXD = args['max_dist']
 DEBUG = args['debug']
 
 # TODO: Or just set time limit
@@ -92,15 +93,17 @@ def main():
         avs_writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
 
         # unique vx can be accessed thus driven manually
-        vx = None
-        for a in world.get_actors():
-            if EGO_TYPE in a.type_id:
-                vx = a
-        if not vx:
-            print("{} not found!".format(EGO_TYPE))
-        actor_list.append(vx)
-        if not MANUAL:
-            vx.set_autopilot(True)
+        if DEBUG:
+            vx = None
+            for a in world.get_actors():
+                if EGO_TYPE in a.type_id:
+                    vx = a
+                    actor_list.append(vx)
+            if not vx:
+                print("{} not found!".format(EGO_TYPE))
+                raise Exception
+            if DEBUG == 1:
+                vx.set_autopilot(True)
 
         # actor includes traffic light
         vx_reporter = AVSReporter(TIME,vx,mapp,actor_list,INTERVAL,FOV)
@@ -110,7 +113,8 @@ def main():
         vx_front_cam.listen(image_queuex.put)
         
         # Parallel ego-vehicles 
-        cars[vx] = (vx_reporter, image_queuex)
+        cars[vx] = (vx_reporter, image_queuex, 'hero')
+
         for i in range(EGO_CARS-1):
             v = None
             while not v:
@@ -157,19 +161,24 @@ def main():
                 # e.g. v1-frame#
                 avs.insert(0,"v{}-{}".format(i,timestamp.frame_count))
                 if DEBUG:
-                    print(timestamp)
-                    print(avss[0]) 
-                    print(avs)
+                    if len(v) == 3:
+                        # Hero Car!
+                        print(timestamp)
+                        print(avss[0])
+                        print(avs)
                 else:
                     print("Simulation Time: {} seconds".format(time.time()-t_start))
                     print("Current Frame: {}".format(timestamp.frame_count))
                     print("Totoal Frames: {} * {} = {}".format(EGO_CARS,timestamp.frame_count - start_frame,
                                                                EGO_CARS*(timestamp.frame_count - start_frame)))
     
-                # Filter out entiries not on highway
+                # Filter out entiries that are (not on highway|front cars too far away)
                 lanes = avs[-1]
+                dists = avs[4:6] + avs[10:13]
+                dists = [x for x in dists if x<MAXD]
+
                 image = v[1].get()
-                if int(lanes) >= 4:
+                if (int(lanes) >= 4) and (len(dists) == 5):
                     avs_writer.writerow(avs)
                     image.save_to_disk("{}/v{}/{}".format(NAME,i,timestamp.frame_count))
 
@@ -191,8 +200,6 @@ def quick_front_cam(blueprint_library,actor_list,world,vx,verbose=True):
     cam_bp.set_attribute('image_size_x', str(R[0]))
     cam_bp.set_attribute('image_size_y', str(R[1]))
     cam_bp.set_attribute('fov', str(FOV))
-    #can't do it if in sync mode (after all it is my attempt to sync)
-    #cam_bp.set_attribute('sensor_tick', str(INTERVAL))
     front_cam_loc = carla.Transform(carla.Location(x=CAM_LOC[0], z=CAM_LOC[2]))
     front_cam_loc.rotation.yaw += CAM_ROT[0] 
     front_cam_loc.rotation.pitch += CAM_ROT[1] 
