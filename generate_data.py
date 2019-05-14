@@ -1,17 +1,8 @@
 #!/usr/bin/env python
 
-import glob
 import os
 import sys
-
-try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
-except IndexError:
-    pass
-
+import shutil
 import carla
 import random
 import time
@@ -42,7 +33,7 @@ parser.add_argument('--cam-roll','-crr',metavar='float(degree)', help='Dash cam 
 parser.add_argument('--max-dist','-maxd',metavar='float', help='Max distance to the front car to include', type=float, default=100)
 # TODO: If debug = false; don't even need to do manual_drive.py
 # TODO: execute manual_drive.py inside here and get rid off its cli
-parser.add_argument('--debug','-d',metavar='int(0|1|2)', help='Need a debug ego car which can be driven manually(2) or automatically(1)', type=str, default=0)
+parser.add_argument('--debug','-d',metavar='int(0|1|2)', help='Need a debug ego car which can be driven manually(2) or automatically(1)', type=int, default=0)
 
 args = vars(parser.parse_args())
 
@@ -72,11 +63,15 @@ DEBUG = args['debug']
 # Send images and csv to DGX once exceeds buffer
 BUFFER = 5000
 
+class CarNotFoundError(Exception):
+    print("Couldn't find the hero debug car")
+    
 def main():
     TIME = 0
     FRAME_NUMBER = 0
     actor_list = []
     cars = {}
+    hero = 0
     try:
         client = carla.Client('localhost', 2000)
         client.set_timeout(2.0)
@@ -94,6 +89,7 @@ def main():
 
         # unique vx can be accessed thus driven manually
         if DEBUG:
+            hero += 1
             vx = None
             for a in world.get_actors():
                 if EGO_TYPE in a.type_id:
@@ -101,21 +97,22 @@ def main():
                     actor_list.append(vx)
             if not vx:
                 print("{} not found!".format(EGO_TYPE))
-                raise Exception
+                raise CarNotFoundError 
             if DEBUG == 1:
                 vx.set_autopilot(True)
 
-        # actor includes traffic light
-        vx_reporter = AVSReporter(TIME,vx,mapp,actor_list,INTERVAL,FOV)
-        vx_front_cam = quick_front_cam(blueprint_library,actor_list,world,vx)
-        # Need to create separate queues for different vehicles
-        image_queuex = queue.Queue()
-        vx_front_cam.listen(image_queuex.put)
-        
-        # Parallel ego-vehicles 
-        cars[vx] = (vx_reporter, image_queuex, 'hero')
+            # actor includes traffic light
+            vx_reporter = AVSReporter(TIME,vx,mapp,actor_list,INTERVAL,FOV)
+            vx_front_cam = quick_front_cam(blueprint_library,actor_list,world,vx)
+            # Need to create separate queues for different vehicles
+            image_queuex = queue.Queue()
+            vx_front_cam.listen(image_queuex.put)
+            
+            # Parallel ego-vehicles 
+            cars[vx] = (vx_reporter, image_queuex, 'hero')
+        # The disadvantabge of using global vars
 
-        for i in range(EGO_CARS-1):
+        for i in range(EGO_CARS-hero):
             v = None
             while not v:
                 bp = random_vehicle(blueprint_library,car_type=EGO_TYPE)
@@ -146,6 +143,8 @@ def main():
         STARTED = False
         t_start = time.time()
         t_end = t_start + MAX_TIME
+        # total qualified frames:
+        tqf = 0
         while time.time() < t_end:
             world.tick()
             timestamp = world.wait_for_tick()
@@ -160,17 +159,6 @@ def main():
                 avs = [x if x != None else -1 for x in avs]
                 # e.g. v1-frame#
                 avs.insert(0,"v{}-{}".format(i,timestamp.frame_count))
-                if DEBUG:
-                    if len(v) == 3:
-                        # Hero Car!
-                        print(timestamp)
-                        print(avss[0])
-                        print(avs)
-                else:
-                    print("Simulation Time: {} seconds".format(time.time()-t_start))
-                    print("Current Frame: {}".format(timestamp.frame_count))
-                    print("Totoal Frames: {} * {} = {}".format(EGO_CARS,timestamp.frame_count - start_frame,
-                                                               EGO_CARS*(timestamp.frame_count - start_frame)))
     
                 # Filter out entiries that are (not on highway|front cars too far away)
                 lanes = avs[-1]
@@ -181,6 +169,20 @@ def main():
                 if (int(lanes) >= 4) and (len(dists) == 5):
                     avs_writer.writerow(avs)
                     image.save_to_disk("{}/v{}/{}".format(NAME,i,timestamp.frame_count))
+                    tqf += 1
+
+                if DEBUG:
+                    if len(v) == 3:
+                        # Hero Car!
+                        print(timestamp)
+                        print(avss[0])
+                        print(avs)
+                else:
+                    print("Simulation Time: {} seconds".format(time.time()-t_start))
+                    print("Current Frame: {}".format(timestamp.frame_count))
+                    tpf = EGO_CARS*(timestamp.frame_count - start_frame)
+                    print("Total Possible Frames: {}*{}={}".format(EGO_CARS,timestamp.frame_count-start_frame,tpf))
+                    print("Total Actual Frames: {}/{} ({:.3f})".format(tqf, tpf, (tqf+1)/(tpf+1)))
 
 
 
@@ -192,6 +194,10 @@ def main():
         settings.synchronous_mode = False 
         world.apply_settings(settings)
         csvfile.close()
+        if not os.path.exists('./output'):
+            os.mkdir('./output')
+        shutil.move("./{}".format(NAME),"./output")
+        shutil.move("./{}".format(CSV_NAME),"./output")
         print('done.')
 
 
