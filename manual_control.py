@@ -43,6 +43,7 @@ Use ARROWS or WASD keys for control.
 
 from __future__ import print_function
 
+
 # ==============================================================================
 # -- find carla module ---------------------------------------------------------
 # ==============================================================================
@@ -51,6 +52,8 @@ from __future__ import print_function
 import glob
 import os
 import sys
+
+
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -78,7 +81,6 @@ import math
 import random
 import re
 import weakref
-import dist_exp
 
 try:
     import pygame
@@ -151,7 +153,6 @@ class World(object):
         self.player = None
         self.collision_sensor = None
         self.lane_invasion_sensor = None
-        self.avs_reporter = None
         self.gnss_sensor = None
         self.camera_manager = None
         self._weather_presets = find_weather_presets()
@@ -187,7 +188,6 @@ class World(object):
         # Set up the sensors.
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
-        self.avs_reporter = AVSReporter(self.player, self.hud, self.map)
         self.gnss_sensor = GnssSensor(self.player)
         self.camera_manager = CameraManager(self.player, self.hud)
         self.camera_manager.transform_index = cam_pos_index
@@ -362,7 +362,6 @@ class KeyboardControl(object):
     @staticmethod
     def _is_quit_shortcut(key):
         return (key == K_ESCAPE) or (key == K_q and pygame.key.get_mods() & KMOD_CTRL)
-
 
 
 # ==============================================================================
@@ -623,26 +622,6 @@ class LaneInvasionSensor(object):
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
         self.hud.notification('Crossed line %s' % ' and '.join(text))
-
-
-# ==============================================================================
-# -- AVSReporter ---------------------------------------------------------------
-# ==============================================================================
-class AVSReporter(object):
-    def __init__(self, parent_actor, hud, mapp):
-        self.reporter = None
-        self._parent = parent_actor
-        self.hud = hud
-        self.map = mapp
-        self.world = self._parent.get_world()
-        weak_self = weakref.ref(self)
-        while True:
-            self._report()
-
-    def _report(weak_self):
-        self = weak_self
-        self.hud.notification(dist_exp.vehicle_avs_report(self.hud.simulation_time,self._parent,self.map,self.world.get_actors()))
-        
 
 # ==============================================================================
 # -- GnssSensor --------------------------------------------------------
