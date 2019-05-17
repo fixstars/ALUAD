@@ -30,7 +30,7 @@ parser.add_argument('--cam-z','-cz',metavar='float(m)', help='Dash cam location 
 parser.add_argument('--cam-yaw','-cry',metavar='float(degree)', help='Dash cam rotation yaw', type=float, default=0)
 parser.add_argument('--cam-pitch','-crp',metavar='float(degree)', help='Dash cam rotation pitch', type=float, default=10)
 parser.add_argument('--cam-roll','-crr',metavar='float(degree)', help='Dash cam rotation roll', type=float, default=0)
-parser.add_argument('--max-dist','-maxd',metavar='float', help='Max distance to the front car to include', type=float, default=100)
+parser.add_argument('--max-dist','-maxd',metavar='float', help='Max distance to the front car to include', type=float, default=80)
 # TODO: If debug = false; don't even need to do manual_drive.py
 # TODO: execute manual_drive.py inside here and get rid off its cli
 parser.add_argument('--debug','-d',metavar='int(0|1|2)', help='Need a debug ego car which can be driven manually(2) or automatically(1)', type=int, default=0)
@@ -162,7 +162,7 @@ def main():
     
                 # Filter out entiries that are (not on highway|front cars too far away)
                 lanes = avs[-1]
-                dists = avs[4:6] + avs[10:13]
+                dists = avs[5:7] + avs[11:14]
                 dists = [x for x in dists if x<MAXD]
 
                 image = v[1].get()
