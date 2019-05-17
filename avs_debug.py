@@ -50,11 +50,38 @@ def main():
             v = quick_actor(bp, v_init, actor_list, world)
             v.set_autopilot(True)
 
+        CRAZY_TIME = 5
+        NORMAL_TIME = 5
+        dt = 0
+        CRAZY = False
         while TIME < MAX_TIME:
             # Can also report other vehicles' affordance vectors
             print(vx_reporter.report(vx,mapp,world.get_actors())[0]) 
             print(vx_reporter.report(vx,mapp,world.get_actors())[1]) 
-            
+            print("CRAZY:",CRAZY)
+            vx.set_autopilot(True)
+           # if CRAZY:
+           #     vx.set_autopilot(False)
+           #     vx_wp = mapp.get_waypoint(vx.get_location(),project_to_road=True)
+           #     if vx_wp.get_left_lane() and str(vx_wp.get_left_lane().lane_type) == 'Driving':
+           #         print("Now turn left!")
+           #         vx.apply_control(carla.VehicleControl(throttle=0.1, steer=-0.01))
+           #     elif vx_wp.get_right_lane() and str(vx_wp.get_right_lane().lane_type) == 'Driving':
+           #         print("Now turn right!")
+           #         vx.apply_control(carla.VehicleControl(throttle=0.1, steer=0.01))
+
+           #     dt += INTERVAL
+           #     if dt >= CRAZY_TIME:
+           #         dt = 0
+           #         CRAZY = False
+           # else:
+           #     vx.set_autopilot(True)
+           #     dt += INTERVAL
+           #     if dt >= NORMAL_TIME:
+           #         dt = 0
+           #         CRAZY = True
+
+
             time.sleep(INTERVAL)
             TIME += INTERVAL
 
