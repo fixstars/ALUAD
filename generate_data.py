@@ -84,7 +84,6 @@ def main():
         world.apply_settings(settings)
 
         csvfile = open(CSV_NAME, 'w', newline='')
-        # TODO: flush 
         avs_writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
 
         # unique vx can be accessed thus driven manually
@@ -169,6 +168,7 @@ def main():
                 if (int(lanes) >= 4):
                     avs_writer.writerow(avs)
                     image.save_to_disk("{}/v{}/{}".format(NAME,i,timestamp.frame_count))
+                    csvfile.flush()
                     tqf += 1
 
                 if DEBUG:
