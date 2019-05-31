@@ -84,7 +84,6 @@ def main():
         world.apply_settings(settings)
 
         csvfile = open(CSV_NAME, 'w', newline='')
-        # TODO: flush 
         avs_writer = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
 
         # unique vx can be accessed thus driven manually
@@ -162,13 +161,14 @@ def main():
     
                 # Filter out entiries that are (not on highway|front cars too far away)
                 lanes = avs[-1]
-                dists = avs[5:7] + avs[11:14]
-                dists = [x for x in dists if x<MAXD]
+                #dists = avs[5:7] + avs[11:14]
+                #dists = [x for x in dists if x<MAXD]
 
                 image = v[1].get()
-                if (int(lanes) >= 4) and (len(dists) == 5):
+                if (int(lanes) >= 4):
                     avs_writer.writerow(avs)
                     image.save_to_disk("{}/v{}/{}".format(NAME,i,timestamp.frame_count))
+                    csvfile.flush()
                     tqf += 1
 
                 if DEBUG:
