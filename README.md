@@ -104,3 +104,6 @@ Neural Network part is not included yet. It is a work in progress.
 [avs-fig]: https://www.ics.uci.edu/~daohangt/img/avs.PNG "Illustration of the affordance representation"
 [town04-url]: http://carla.org/2019/01/31/release-0.9.3/
 [town04-fig]: https://www.ics.uci.edu/~daohangt/img/town04.PNG "Beautiful Town04 with highway"
+
+### Remark
+ This source code is based on results obtained from a project commissioned by the New Energy and Industrial Technology Development Organization (NEDO).
