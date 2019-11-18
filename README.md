@@ -108,5 +108,5 @@ Following [DeepDriving's][dd-url] suggestions, the standard AlexNet is tried. Ho
 [town04-url]: http://carla.org/2019/01/31/release-0.9.3/
 [town04-fig]: https://www.ics.uci.edu/~daohangt/img/town04.PNG "Beautiful Town04 with highway"
 
-### Remark
+## Remark
  This source code is based on results obtained from a project commissioned by the New Energy and Industrial Technology Development Organization (NEDO).
