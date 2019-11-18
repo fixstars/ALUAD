@@ -1,2 +1,5 @@
 __pycache__
-output/
+/data/
+log/
+*.swp
+.ipynb_checkpoints/
