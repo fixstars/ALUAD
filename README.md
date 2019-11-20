@@ -1,8 +1,8 @@
-## CARLA-DeepDriving
+# CARLA-DeepDriving
 Implementing [DeepDriving][dd-url] with [CARLA simulator][carla-url].  
 
 
-### Background
+## Background
 **DeepDriving**:
 
 DeepDriving shows that by extracting certain information (i.e. affordance indicators) using CNN from an image taken by a typical RGB dash cam, one will be able to control the vehicle in highway traffic with speed adjusting and lane changing ability.
@@ -25,7 +25,7 @@ Despite the somewhat narrow scope, DeepDriving still demonstrates some interesti
 CARLA is an open urban driving simulator focused on supporting the development autonomous driving systems. Various measurements (e.g. the location of the car, the width of the lane, etc.) are readily available during simulation thanks to its convenient [PythonAPI][carla-py-url] and fully annotated maps. Also, various sensors and cameras (e.g. RGB camera, depth camera, lidar, etc.) are available. Some other nice features are configurable (vehicle|map|weather), synchronous mode and no-rendering mode. The synchronous mode turns out to be critical to record the data in the way we want.
 
 
-### Data Collection
+## Data Collection
 
 [comment]: # (I am not sure if I should write "how to use the code" or "how did I implement this" kind of documentation. Also, I need to update the usage once cli flag is supported)
 
@@ -37,7 +37,7 @@ To start the simulation, execute  `<carla_dir>/CarlaUE4.sh Town04 --benchmark -f
  
 Since DeepDriving is based on highway, [Town04][town04-url] is being used. Also, since Town04 incluedes some non-highway road, during the data collection, once the ego vehicle found not on the highway, the frames and groundtruth will not be recorded. Note it is possible that after some time the vehicle will be on highway and its frame will be recorded once it is on the highway so you might notice some discontinuity in the collected frames. 
 
-To start collecting data, execute `generate_data.py`
+To start generating data, execute `src/data/generate_data.py`
 
 All the parameters such as the number of ego vehicles, NPCs, the simulation time limit, etc. can be configured through cli. The only required arguments are `duration` and `name` of the simulation and if one argument is missing it will be provided with one tested default value that should work.
 
@@ -64,34 +64,37 @@ python3 generate_data.py --duration 300 --name exp --debug
 When the simulation ends, you get (e.g. for 5 ego vehicles):
 
 ```bash
-output/
-├ images
-│   ├ v0
-│   ├ v1
-│   ├ v2
-│   ├ v3
-│   └ v4
-└ labels.csv
+data/{name}/
+├── {name}_labels.csv
+├── v0
+├── v1
+├── v2
+├── v3
+└── v4
 ```
 
-While the labels.csv has the following header:
+While the `{name}_labels.csv` has the following header:
 
 ```
 image-id,angle,toMarking_L,toMarking_M,toMarking_R,dist_L,dist_R,toMarking_LL,toMarking_ML,toMarking_MR,toMarking_RR,dist_LL,dist_MM,dist_RR,velocity(m/s),in_intersection
 
 ```
 
-The frame number together with the ego vehicle number are used as the unique identifier for the image-id. The `in_intersection` boolean can be used to filter out the images we don't want later in the deep learning stage, according to the assumptions made by DeepDriving.
+The frame number together with the ego vehicle number and experiment name are used as the unique identifier for the image-id. The `in_intersection` boolean can be used to filter out the images we don't want later in the deep learning stage, according to the assumptions made by DeepDriving.
+
+Once you have enough data and ready to train the neural networks, execute `merge.sh` to merge labels from multiple experiments into a single dataset. Addtionally, you can use `--verbose` flag to see some useful information about the dataset and `--remove-file` flag to have the original labels removed.
 
 [comment]: # (**Details on how the `generate_data.py` script works:** I will add how the code works later, probably in another md file like contributions.md)
 
 
-### Nerual Network
+## Nerual Network
 
-Neural Network part is not included yet. It is a work in progress.
+Jupyter notebooks used for quick exploration are included in `notebook/`. The corresponding python code are included in `src/models/`.
+
+Following [DeepDriving's][dd-url] suggestions, the standard AlexNet is tried. However, due to time constriant, not enough data is collected to effectively evaluate the model. Note that you can check `notebook/train.ipynb` to see some **preliminary** results.
 
 
-### Reference
+## Reference
 + DeepDriving: [Website][dd-url] | [Paper][dd-paper]  
 + CARLA:       [Website][carla-url] | [Paper][carla-paper]  
 
@@ -105,5 +108,5 @@ Neural Network part is not included yet. It is a work in progress.
 [town04-url]: http://carla.org/2019/01/31/release-0.9.3/
 [town04-fig]: https://www.ics.uci.edu/~daohangt/img/town04.PNG "Beautiful Town04 with highway"
 
-### Remark
+## Remark
  This source code is based on results obtained from a project commissioned by the New Energy and Industrial Technology Development Organization (NEDO).

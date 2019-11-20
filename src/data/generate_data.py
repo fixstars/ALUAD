@@ -3,6 +3,16 @@
 import os
 import sys
 import shutil
+import glob
+
+try:
+    sys.path.append(glob.glob('CARLA_0.9.5/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
 import carla
 import random
 import time
@@ -54,7 +64,7 @@ CAM_LOC = (args['cam_x'],args['cam_y'],args['cam_z'])
 CAM_ROT = (args['cam_yaw'],args['cam_pitch'],args['cam_roll'])
 FPS = 10
 INTERVAL = 1/FPS
-NAME = "{}-{}".format(args['name'],MAX_TIME)
+NAME = "{}".format(args['name'])
 CSV_NAME = "{}_labels.csv".format(NAME)
 MAXD = args['max_dist']
 DEBUG = args['debug']
@@ -91,6 +101,7 @@ def main():
             hero += 1
             vx = None
             for a in world.get_actors():
+                print(a.type_id,EGO_TYPE)
                 if EGO_TYPE in a.type_id:
                     vx = a
                     actor_list.append(vx)
@@ -157,7 +168,7 @@ def main():
                 avs = avss[1]
                 avs = [x if x != None else -1 for x in avs]
                 # e.g. v1-frame#
-                avs.insert(0,"v{}-{}".format(i,timestamp.frame_count))
+                avs.insert(0,"{}-v{}-{}".format(NAME,i,timestamp.frame_count))
     
                 # Filter out entiries that are (not on highway|front cars too far away)
                 lanes = avs[-1]
@@ -194,10 +205,10 @@ def main():
         settings.synchronous_mode = False 
         world.apply_settings(settings)
         csvfile.close()
-        if not os.path.exists('./output'):
-            os.mkdir('./output')
-        shutil.move("./{}".format(NAME),"./output")
-        shutil.move("./{}".format(CSV_NAME),"./output")
+        if not os.path.exists('../../data'):
+            os.mkdir('../../data')
+        shutil.move("./{}".format(NAME),"../../data")
+        shutil.move("./{}".format(CSV_NAME),"../../data/{}".format(NAME))
         print('done.')
 
 
